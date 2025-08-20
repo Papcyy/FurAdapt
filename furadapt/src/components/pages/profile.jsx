@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { Mail, MapPin, Calendar, Edit, Camera, Phone } from "lucide-react";
 
 export default function Profile() {
-  const user = {
+  const initialUser = {
     image: "/api/placeholder/400/400",
     fullName: "John Doe",
     address: "123 Main Street, Springfield, USA",
@@ -17,25 +17,41 @@ export default function Profile() {
     }
   };
 
+  const [user, setUser] = useState(initialUser);
   const [profileImage, setProfileImage] = useState(user.image);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(user);
   const fileInputRef = useRef(null);
 
   const handleProfilePictureUpdate = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files[0]; 
     if (file) {
-      // Create a URL for the selected image file
       const imageUrl = URL.createObjectURL(file);
       setProfileImage(imageUrl);
-      
-      // Here you would typically upload the file to your server
-      // Example:
-      // const formData = new FormData();
-      // formData.append('profilePicture', file);
-      // await fetch('/api/update-profile-picture', {
-      //   method: 'POST',
-      //   body: formData
-      // });
+      setEditData((prev) => ({ ...prev, image: imageUrl }));
     }
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEdit = () => {
+    setEditData(user);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditData(user);
+    setProfileImage(user.image);
+    setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    setUser(editData);
+    setProfileImage(editData.image);
+    setIsEditing(false);
   };
 
   return (
@@ -43,13 +59,14 @@ export default function Profile() {
       <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden transition-shadow hover:shadow-2xl">
         {/* Cover Photo & Actions Bar */}
         <div className="h-48 sm:h-56 bg-gradient-to-r from-blue-500 to-indigo-600 relative">
-          <button 
+          <button
             className="absolute right-4 top-4 bg-white/20 hover:bg-white/30 p-2.5 rounded-full backdrop-blur-sm transition-all hover:scale-105 focus:ring-2 focus:ring-white"
             aria-label="Edit cover photo"
+            disabled
           >
             <Edit size={20} className="text-white" />
           </button>
-          
+
           {/* Profile Picture */}
           <div className="absolute -bottom-12 left-8 sm:left-12">
             <div className="relative group">
@@ -60,27 +77,48 @@ export default function Profile() {
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>
-              <button 
-                className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110 group-hover:bg-blue-600"
-                aria-label="Update profile picture"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera size={16} />
-              </button>
+              {isEditing && (
+                <button
+                  className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110 group-hover:bg-blue-600"
+                  aria-label="Update profile picture"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera size={16} />
+                </button>
+              )}
             </div>
           </div>
         </div>
-        
+
         {/* Profile Content */}
         <div className="px-8 pb-8 pt-16 sm:px-12">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
-                {user.fullName}
-              </h1>
-              <p className="text-blue-500 font-medium">{user.role}</p>
+              {isEditing ? (
+                <>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={editData.fullName}
+                    onChange={handleEditChange}
+                    className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 border-b border-blue-200 focus:outline-none focus:border-blue-500 bg-white"
+                  />
+                  <input
+                    type="text"
+                    name="role"
+                    value={editData.role}
+                    onChange={handleEditChange}
+                    className="text-blue-500 font-medium border-b border-blue-100 focus:outline-none focus:border-blue-400 bg-white"
+                  />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{user.fullName}</h1>
+                  <p className="text-blue-500 font-medium">{user.role}</p>
+                </>
+              )}
             </div>
-            
+
             {/* Quick Stats */}
             <div className="flex justify-center mt-4 sm:mt-0">
               <div className="text-center">
@@ -89,36 +127,94 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          
+
           {/* Bio */}
-          <p className="text-gray-600 mb-8 leading-relaxed">{user.bio}</p>
-          
+          {isEditing ? (
+            <textarea
+              name="bio"
+              value={editData.bio}
+              onChange={handleEditChange}
+              className="text-gray-600 mb-8 leading-relaxed border border-blue-200 rounded-lg p-2 w-full focus:outline-none focus:border-blue-400 bg-white"
+              rows={3}
+            />
+          ) : (
+            <p className="text-gray-600 mb-8 leading-relaxed">{user.bio}</p>
+          )}
+
           {/* User Details */}
           <div className="grid sm:grid-cols-2 gap-4 mb-8">
             <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <MapPin size={20} className="mr-3 text-blue-500 flex-shrink-0" />
-              <span className="text-gray-700">{user.address}</span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="address"
+                  value={editData.address}
+                  onChange={handleEditChange}
+                  className="text-gray-700 border-b border-blue-200 focus:outline-none focus:border-blue-400 bg-gray-50"
+                />
+              ) : (
+                <span className="text-gray-700">{user.address}</span>
+              )}
             </div>
             <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <Mail size={20} className="mr-3 text-blue-500 flex-shrink-0" />
-              <span className="text-gray-700">{user.email}</span>
+              {isEditing ? (
+                <input
+                  type="email"
+                  name="email"
+                  value={editData.email}
+                  onChange={handleEditChange}
+                  className="text-gray-700 border-b border-blue-200 focus:outline-none focus:border-blue-400 bg-gray-50"
+                />
+              ) : (
+                <span className="text-gray-700">{user.email}</span>
+              )}
             </div>
             <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <Phone size={20} className="mr-3 text-blue-500 flex-shrink-0" />
-              <span className="text-gray-700">{user.phone}</span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="phone"
+                  value={editData.phone}
+                  onChange={handleEditChange}
+                  className="text-gray-700 border-b border-blue-200 focus:outline-none focus:border-blue-400 bg-gray-50"
+                />
+              ) : (
+                <span className="text-gray-700">{user.phone}</span>
+              )}
             </div>
             <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               <Calendar size={20} className="mr-3 text-blue-500 flex-shrink-0" />
               <span className="text-gray-700">Member since {user.joinDate}</span>
             </div>
           </div>
-          
-          {/* Edit Profile Button */}
-          <button 
-            className="w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition-all hover:shadow-md focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-          >
-            Edit Profile
-          </button>
+
+          {/* Edit/Save/Cancel Buttons */}
+          {isEditing ? (
+            <div className="flex gap-4">
+              <button
+                className="w-full sm:w-auto px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg shadow-sm transition-all hover:shadow-md focus:ring-2 focus:ring-green-300 focus:ring-offset-2"
+                onClick={handleSave}
+              >
+                Save
+              </button>
+              <button
+                className="w-full sm:w-auto px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-lg shadow-sm transition-all hover:shadow-md focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              className="w-full sm:w-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition-all hover:shadow-md focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+              onClick={handleEdit}
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
       </div>
 

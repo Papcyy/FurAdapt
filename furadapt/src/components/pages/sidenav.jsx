@@ -51,7 +51,7 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
   return (
     <nav className="flex h-screen w-64 flex-col border-r border-blue-100 bg-white shadow-md transition-all duration-300">
       {/* Header with Logo */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-4">
+      <div className="flex items-center justify-between px-5 pt-6 pb-4">  
         <div className="flex items-center">
           {/* Replace the blue F with the logo */}
           <img

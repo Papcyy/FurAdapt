@@ -208,7 +208,7 @@ const PetCard = ({ pet, onAdopt }) => {
   );
 };
 
-const PetListing = ({ onAdopt }) => {
+const PetListing = ({ onAdopt, adoptedPets }) => {
   // Separate state for modal filter and applied filter
   const defaultFilter = {
     type: "all",
@@ -221,7 +221,6 @@ const PetListing = ({ onAdopt }) => {
   const [modalFilter, setModalFilter] = useState(defaultFilter);
   const [selectedPet, setSelectedPet] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [adoptedPets, setAdoptedPets] = useState([]);
 
   // Filtering logic uses appliedFilter only
   const filteredPets = pets.filter((pet) => {
@@ -257,7 +256,7 @@ const PetListing = ({ onAdopt }) => {
 
   // Handler for submitting adoption request
   const handleAdoptRequest = (pet) => {
-    setAdoptedPets((prev) => [...prev, pet]);
+    if (onAdopt) onAdopt(pet);
     setSelectedPet(null);
     // Optionally, show a toast or message here
   };
