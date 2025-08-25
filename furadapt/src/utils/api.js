@@ -42,7 +42,35 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/profile'),
-  updateProfile: (userData) => api.put('/auth/profile', userData),
+  updateProfile: (userData) => {
+    // Check if we have file data that needs FormData
+    const hasFile = userData instanceof FormData || 
+                   Object.values(userData).some(value => value instanceof File);
+    
+    if (hasFile) {
+      let formData;
+      if (userData instanceof FormData) {
+        formData = userData;
+      } else {
+        formData = new FormData();
+        Object.keys(userData).forEach(key => {
+          if (userData[key] instanceof File) {
+            formData.append(key, userData[key]);
+          } else if (userData[key] !== null && userData[key] !== undefined) {
+            formData.append(key, userData[key]);
+          }
+        });
+      }
+      
+      return api.put('/auth/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    } else {
+      return api.put('/auth/profile', userData);
+    }
+  },
 };
 
 // Pets API
