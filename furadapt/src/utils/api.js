@@ -142,6 +142,7 @@ export const chatAPI = {
   getConversations: () => api.get('/chat'),
   getMessages: (userId, params = {}) => api.get(`/chat/${userId}`, { params }),
   sendMessage: (messageData) => api.post('/chat', messageData),
+  startConversation: (userId) => api.post('/chat/start', { userId }),
   markAsRead: (userId) => api.put(`/chat/${userId}/read`),
   getUnreadCount: () => api.get('/chat/unread/count'),
 };

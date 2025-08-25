@@ -17,6 +17,7 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [startingConversation, setStartingConversation] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -28,30 +29,74 @@ const Chat = () => {
         socket.disconnect();
       }
     };
-  }, []);
+  }, [user]); // Add user as dependency
 
+  // Handle direct navigation to /chat/:userId
   useEffect(() => {
-    if (userId && conversations.length > 0) {
-      const conversation = conversations.find(conv => conv._id === userId);
-      if (conversation) {
-        selectConversation(conversation);
+    if (userId && !loading) {
+      console.log('UserId changed or loading completed:', { userId, loading, conversationsCount: conversations.length });
+      
+      if (conversations.length > 0) {
+        const conversation = conversations.find(conv => conv._id === userId);
+        if (conversation) {
+          console.log('Found existing conversation:', conversation);
+          selectConversation(conversation);
+        } else {
+          console.log('No existing conversation found, starting new one');
+          startNewConversation(userId);
+        }
+      } else {
+        // If no conversations loaded yet, start new conversation directly
+        console.log('No conversations loaded, starting new conversation directly');
+        startNewConversation(userId);
       }
     }
-  }, [userId, conversations]);
+  }, [userId, loading, conversations.length]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   const initializeSocket = () => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:5001', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     
     newSocket.on('connect', () => {
       console.log('Connected to server');
+      if (user) {
+        newSocket.emit('user_online', user._id);
+      }
     });
 
     newSocket.on('receive_message', (messageData) => {
       setMessages(prev => [...prev, messageData]);
+      
+      // Update conversations list with the latest message
+      setConversations(prev => 
+        prev.map(conv => 
+          conv._id === messageData.sender._id 
+            ? { 
+                ...conv, 
+                lastMessage: messageData.message,
+                lastMessageTime: messageData.createdAt,
+                unreadCount: selectedConversation?._id === messageData.sender._id ? 0 : conv.unreadCount + 1
+              }
+            : conv
+        )
+      );
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      toast.error('Connection error. Retrying...');
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from server');
     });
 
     setSocket(newSocket);
@@ -69,6 +114,69 @@ const Chat = () => {
     }
   };
 
+  const startNewConversation = async (userId) => {
+    try {
+      setStartingConversation(true);
+      console.log('Starting new conversation with userId:', userId);
+      console.log('Current user:', user);
+      
+      // Check if user is trying to chat with themselves
+      if (userId === user._id) {
+        toast.error("You can't chat with yourself!");
+        navigate('/chat');
+        return;
+      }
+      
+      const response = await chatAPI.startConversation(userId);
+      console.log('Start conversation response:', response);
+      const { user: targetUser } = response.data;
+      
+      // Create a mock conversation object for the UI
+      const newConversation = {
+        _id: userId,
+        otherUser: targetUser,
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 0
+      };
+
+      console.log('Created new conversation object:', newConversation);
+      setSelectedConversation(newConversation);
+      setMessages([]);
+      
+      // Join room for real-time messaging
+      const joinRoom = () => {
+        if (socket && socket.connected) {
+          const roomId = [user._id, userId].sort().join('_');
+          console.log('Joining room:', roomId);
+          socket.emit('join_room', roomId);
+        } else {
+          console.log('Socket not ready, waiting...');
+          setTimeout(joinRoom, 500);
+        }
+      };
+      joinRoom();
+
+      // Add to conversations list if not already there
+      setConversations(prev => {
+        const exists = prev.find(conv => conv._id === userId);
+        if (!exists) {
+          console.log('Adding new conversation to list');
+          return [newConversation, ...prev];
+        }
+        return prev;
+      });
+
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      console.error('Error details:', error.response?.data);
+      toast.error('Failed to start conversation: ' + (error.response?.data?.message || error.message));
+      // Don't navigate away, let user try again
+    } finally {
+      setStartingConversation(false);
+    }
+  };
+
   const selectConversation = async (conversation) => {
     try {
       setSelectedConversation(conversation);
@@ -77,12 +185,23 @@ const Chat = () => {
       
       // Join room for real-time messaging
       if (socket) {
-        socket.emit('join_room', `${user._id}_${conversation._id}`);
+        const roomId = [user._id, conversation._id].sort().join('_');
+        socket.emit('join_room', roomId);
       }
 
       // Mark messages as read
       await chatAPI.markAsRead(conversation._id);
+      
+      // Update conversation list to remove unread count
+      setConversations(prev => 
+        prev.map(conv => 
+          conv._id === conversation._id 
+            ? { ...conv, unreadCount: 0 }
+            : conv
+        )
+      );
     } catch (error) {
+      console.error('Failed to load messages:', error);
       toast.error('Failed to load messages');
     }
   };
@@ -106,12 +225,27 @@ const Chat = () => {
 
       // Send via socket for real-time delivery
       if (socket) {
+        const roomId = [user._id, selectedConversation._id].sort().join('_');
         socket.emit('send_message', {
           ...newMsg,
-          room: `${selectedConversation._id}_${user._id}`
+          room: roomId
         });
       }
+
+      // Update conversation list with latest message
+      setConversations(prev => 
+        prev.map(conv => 
+          conv._id === selectedConversation._id 
+            ? { 
+                ...conv, 
+                lastMessage: newMessage.trim(),
+                lastMessageTime: new Date().toISOString()
+              }
+            : conv
+        )
+      );
     } catch (error) {
+      console.error('Failed to send message:', error);
       toast.error('Failed to send message');
     } finally {
       setSendingMessage(false);
@@ -311,6 +445,14 @@ const Chat = () => {
               </form>
             </div>
           </>
+        ) : startingConversation ? (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center text-gray-500">
+              <div className="w-16 h-16 border-4 border-[#4e8cff] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold mb-2">Starting conversation...</h2>
+              <p>Please wait while we set up your chat</p>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center text-gray-500">
@@ -319,6 +461,14 @@ const Chat = () => {
               </div>
               <h2 className="text-xl font-semibold mb-2">Select a conversation</h2>
               <p>Choose a conversation from the sidebar to start chatting</p>
+              {userId && (
+                <button
+                  onClick={() => startNewConversation(userId)}
+                  className="mt-4 px-6 py-2 bg-[#4e8cff] text-white rounded-lg hover:bg-[#2563eb] transition"
+                >
+                  Start New Conversation
+                </button>
+              )}
             </div>
           </div>
         )}

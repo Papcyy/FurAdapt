@@ -62,8 +62,15 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 // Socket.IO for real-time chat
+const connectedUsers = new Map();
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  socket.on('user_online', (userId) => {
+    connectedUsers.set(userId, socket.id);
+    console.log(`User ${userId} is online with socket ${socket.id}`);
+  });
 
   socket.on('join_room', (roomId) => {
     socket.join(roomId);
@@ -71,11 +78,27 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', (data) => {
+    console.log('Broadcasting message to room:', data.room);
     socket.to(data.room).emit('receive_message', data);
+  });
+
+  socket.on('typing', (data) => {
+    socket.to(data.room).emit('user_typing', data);
+  });
+
+  socket.on('stop_typing', (data) => {
+    socket.to(data.room).emit('user_stop_typing', data);
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    // Remove user from connected users
+    for (const [userId, socketId] of connectedUsers.entries()) {
+      if (socketId === socket.id) {
+        connectedUsers.delete(userId);
+        break;
+      }
+    }
   });
 });
 

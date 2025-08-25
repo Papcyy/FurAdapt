@@ -221,4 +221,53 @@ router.get('/unread/count', protect, async (req, res) => {
   }
 });
 
+// @desc    Start a conversation with a user
+// @route   POST /api/chat/start
+// @access  Private
+router.post('/start', protect, [
+  body('userId').notEmpty().withMessage('User ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { userId } = req.body;
+    const currentUserId = req.user._id;
+
+    // Check if the user exists
+    const targetUser = await User.findById(userId).select('name email role');
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if a conversation already exists
+    const existingMessage = await ChatMessage.findOne({
+      $or: [
+        { sender: currentUserId, receiver: userId },
+        { sender: userId, receiver: currentUserId }
+      ]
+    });
+
+    if (existingMessage) {
+      return res.json({ 
+        message: 'Conversation already exists',
+        conversationId: userId,
+        user: targetUser
+      });
+    }
+
+    // Return user info to start a new conversation
+    res.json({
+      message: 'Ready to start conversation',
+      conversationId: userId,
+      user: targetUser
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

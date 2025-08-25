@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { chatAPI } from "../../utils/api";
 // Icons from Lucide React
 import { Home, PawPrint, ClipboardList, MessageCircle, User, Info, LogOut, Menu, Settings } from "lucide-react";
 import logo from "../../assets/logo1.png"; // <-- Add this import
 
-const NavItem = ({ icon, label, isActive, onClick, onHover, isHovered }) => {
+const NavItem = ({ icon, label, isActive, onClick, onHover, isHovered, badge }) => {
   return (
     <li className="relative my-1 px-4">
       <button
@@ -24,6 +25,11 @@ const NavItem = ({ icon, label, isActive, onClick, onHover, isHovered }) => {
         <span className={`font-medium transition-all duration-300 ${isActive ? "font-semibold" : ""}`}>
           {label}
         </span>
+        {badge && badge > 0 && (
+          <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </button>
       
       {/* Tooltip */}
@@ -40,12 +46,29 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [hovered, setHovered] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await chatAPI.getUnreadCount();
+      setUnreadCount(response.data.unreadCount);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
   
   const navConfig = [
     { label: "Dashboard", icon: <Home size={20} /> },
     { label: "Pet Listing", icon: <PawPrint size={20} /> },
     { label: "Adoption Request", icon: <ClipboardList size={20} /> },
-    { label: "Chat", icon: <MessageCircle size={20} /> },
+    { label: "Chat", icon: <MessageCircle size={20} />, badge: unreadCount },
     { label: "Profile", icon: <User size={20} /> },
     { label: "About Us", icon: <Info size={20} /> },
   ];
@@ -102,6 +125,7 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
             onClick={item.onClick || (() => onNavigate(item.label))}
             onHover={setHovered}
             isHovered={hovered === item.label}
+            badge={item.badge}
           />
         ))}
       </ul>

@@ -48,8 +48,14 @@ const PetDetail = () => {
   };
 
   const handleContactOwner = () => {
+    console.log('Contact owner clicked, pet data:', pet);
+    console.log('Pet addedBy:', pet?.addedBy);
     if (pet?.addedBy?._id) {
+      console.log('Navigating to chat with user:', pet.addedBy._id);
       navigate(`/chat/${pet.addedBy._id}`);
+    } else {
+      console.error('No pet owner found to contact');
+      toast.error('Unable to contact pet owner - no owner information available');
     }
   };
 

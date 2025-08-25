@@ -386,7 +386,7 @@ const PetCard = ({ pet, onDelete }) => {
   const navigate = useNavigate();
   const imageUrl = pet.images?.[0]?.startsWith('http') 
     ? pet.images[0] 
-    : `http://localhost:5000${pet.images?.[0] || ''}`;
+    : `http://localhost:5001${pet.images?.[0] || ''}`;
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -477,7 +477,7 @@ const AdoptionRequestManagement = ({ requests, loading, onStatusUpdate }) => {
                       <img
                         src={request.pet?.images?.[0]?.startsWith('http') 
                           ? request.pet.images[0] 
-                          : `http://localhost:5000${request.pet?.images?.[0] || ''}`}
+                          : `http://localhost:5001${request.pet?.images?.[0] || ''}`}
                         alt={request.pet?.name}
                         className="h-10 w-10 rounded-full object-cover"
                         onError={(e) => {
