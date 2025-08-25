@@ -39,11 +39,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  bio: {
-    type: String,
-    trim: true,
-    maxlength: [500, 'Bio cannot be more than 500 characters']
-  },
   isActive: {
     type: Boolean,
     default: true

@@ -2,7 +2,6 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { protect, generateToken } from '../middleware/auth.js';
-import upload from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -100,7 +99,7 @@ router.get('/profile', protect, async (req, res) => {
 // @desc    Update user profile
 // @route   PUT /api/auth/profile
 // @access  Private
-router.put('/profile', protect, upload.single('profileImage'), [
+router.put('/profile', protect, [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('email').optional().isEmail().withMessage('Please enter a valid email')
 ], async (req, res) => {
@@ -116,21 +115,7 @@ router.put('/profile', protect, upload.single('profileImage'), [
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.phone = req.body.phone || user.phone;
-      user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
-      
-      // Handle address - can be string or object
-      if (req.body.address) {
-        if (typeof req.body.address === 'string') {
-          user.address = { street: req.body.address };
-        } else {
-          user.address = req.body.address;
-        }
-      }
-
-      // Handle profile image upload
-      if (req.file) {
-        user.profileImage = `/uploads/${req.file.filename}`;
-      }
+      user.address = req.body.address || user.address;
 
       const updatedUser = await user.save();
 
@@ -141,9 +126,6 @@ router.put('/profile', protect, upload.single('profileImage'), [
         role: updatedUser.role,
         phone: updatedUser.phone,
         address: updatedUser.address,
-        bio: updatedUser.bio,
-        profileImage: updatedUser.profileImage,
-        createdAt: updatedUser.createdAt,
         token: generateToken(updatedUser._id)
       });
     } else {
