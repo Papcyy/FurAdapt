@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 // Icons from Lucide React
-import { Home, PawPrint, ClipboardList, MessageCircle, User, Info, LogOut, Menu } from "lucide-react";
+import { Home, PawPrint, ClipboardList, MessageCircle, User, Info, LogOut, Menu, Settings } from "lucide-react";
 import logo from "../../assets/logo1.png"; // <-- Add this import
 
 const NavItem = ({ icon, label, isActive, onClick, onHover, isHovered }) => {
@@ -37,6 +38,7 @@ const NavItem = ({ icon, label, isActive, onClick, onHover, isHovered }) => {
 
 const Sidenav = ({ currentPage, onNavigate, onHide }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [hovered, setHovered] = useState(null);
   
   const navConfig = [
@@ -47,6 +49,24 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
     { label: "Profile", icon: <User size={20} /> },
     { label: "About Us", icon: <Info size={20} /> },
   ];
+
+  // Add admin dashboard for admin users
+  if (user?.role === 'admin') {
+    navConfig.splice(1, 0, { 
+      label: "Admin Dashboard", 
+      icon: <Settings size={20} />,
+      onClick: () => navigate('/admin')
+    });
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <nav className="flex h-screen w-64 flex-col border-r border-blue-100 bg-white shadow-md transition-all duration-300">
@@ -79,17 +99,32 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
             icon={item.icon}
             label={item.label}
             isActive={currentPage === item.label}
-            onClick={() => onNavigate(item.label)}
+            onClick={item.onClick || (() => onNavigate(item.label))}
             onHover={setHovered}
             isHovered={hovered === item.label}
           />
         ))}
       </ul>
       
+      {/* User Info */}
+      {user && (
+        <div className="border-t border-blue-100 p-4">
+          <div className="flex items-center">
+            <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-semibold">
+              {user.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-900">{user.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Logout Button */}
       <div className="p-4">
         <button 
-          onClick={() => navigate("/login")}
+          onClick={handleLogout}
           className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 py-3 px-4 font-semibold text-white shadow-md hover:from-amber-500 hover:to-amber-600 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
         >
           <LogOut size={18} className="mr-2" />

@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // <-- Import useNavigate
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import logo from '../assets/logo1.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate(); // <-- Initialize useNavigate
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (e) => {
+  const from = location.state?.from?.pathname || '/home';
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // No validation, just redirect
-    navigate('/home'); // <-- Redirect to /home
+    
+    const result = await login({ email, password });
+    
+    if (result.success) {
+      toast.success('Login successful!');
+      navigate(from, { replace: true });
+    } else {
+      toast.error(result.error);
+    }
   };
 
   return (
@@ -33,6 +46,7 @@ const Login = () => {
               required
               autoFocus
               placeholder="you@email.com"
+              disabled={loading}
             />
           </div>
           <div>
@@ -45,13 +59,22 @@ const Login = () => {
               onChange={e => setPassword(e.target.value)}
               required
               placeholder="••••••••"
+              disabled={loading}
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-[#ffb84e] to-[#ff9800] hover:from-[#ff9800] hover:to-[#ffb84e] text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg transition-all duration-200 transform hover:scale-105 tracking-wide"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#ffb84e] to-[#ff9800] hover:from-[#ff9800] hover:to-[#ffb84e] text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg transition-all duration-200 transform hover:scale-105 tracking-wide disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            Log In
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Logging in...
+              </div>
+            ) : (
+              'Log In'
+            )}
           </button>
         </form>
         <div className="mt-6 flex flex-col items-center gap-2">

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import Sidenav from "./sidenav";
 import Dashboard from "./dashboard";
 import PetListing from "./petlisting.jsx";
@@ -7,6 +9,8 @@ import Request from "./request"; // Import the Request component
 import Profile from "./profile"; // Import the Profile component
 
 const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
+  const navigate = useNavigate();
+  
   switch (page) {
     case "Dashboard":
       return <Dashboard petsCount={42} analytics={{ adoptionsThisMonth: 12, pendingRequests: 5, totalUsers: 120 }} />;
@@ -15,7 +19,9 @@ const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
     case "Adoption Request":
       return <Request adoptedPets={adoptedPets} />;
     case "Chat":
-      return <div><h2>Chat</h2><p>Chat with adopters or pet owners.</p></div>;
+      // Navigate to the dedicated chat page
+      navigate('/chat');
+      return null;
     case "Profile":
       return <Profile />;
     case "About Us":

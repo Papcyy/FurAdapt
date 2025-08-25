@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import logo from '../assets/logo1.png';
 
 const Signup = () => {
@@ -7,15 +9,31 @@ const Signup = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [role, setRole] = useState('user');
+  const { register, loading } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (password !== confirm) {
-      alert('Passwords do not match!');
+      toast.error('Passwords do not match!');
       return;
     }
-    // TODO: Add registration logic here
-    alert(`Registered:\nName: ${name}\nEmail: ${email}`);
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long!');
+      return;
+    }
+
+    const result = await register({ name, email, password, role });
+    
+    if (result.success) {
+      toast.success('Registration successful!');
+      navigate('/home');
+    } else {
+      toast.error(result.error);
+    }
   };
 
   return (
@@ -74,13 +92,35 @@ const Signup = () => {
               onChange={e => setConfirm(e.target.value)}
               required
               placeholder="Repeat your password"
+              disabled={loading}
             />
+          </div>
+          <div>
+            <label className="block text-[#4e8cff] font-semibold mb-1" htmlFor="role">Account Type</label>
+            <select
+              id="role"
+              className="w-full px-4 py-2 rounded-lg border border-[#e0e7ef] focus:outline-none focus:ring-2 focus:ring-[#4e8cff] bg-[#f8fafc] transition"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              disabled={loading}
+            >
+              <option value="user">Pet Adopter</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-[#ffb84e] to-[#ff9800] hover:from-[#ff9800] hover:to-[#ffb84e] text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg transition-all duration-200 transform hover:scale-105 tracking-wide"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#ffb84e] to-[#ff9800] hover:from-[#ff9800] hover:to-[#ffb84e] text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg transition-all duration-200 transform hover:scale-105 tracking-wide disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            Sign Up
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Creating Account...
+              </div>
+            ) : (
+              'Sign Up'
+            )}
           </button>
         </form>
         <div className="mt-6 flex flex-col items-center gap-2">
