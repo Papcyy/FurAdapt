@@ -1,82 +1,193 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { adoptionAPI } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import { Calendar, MapPin, Heart, Clock, RefreshCw } from 'lucide-react';
 
+const Request = () => {
+  const { user } = useAuth();
+  const [adoptionRequests, setAdoptionRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalRequest, setModalRequest] = useState(null);
 
-const Request = ({ adoptedPets }) => {
-  const [modalPet, setModalPet] = useState(null);
+  useEffect(() => {
+    fetchAdoptionRequests();
+  }, []);
 
-  // For demo, all requests are 'Pending'. You can extend this to support other statuses.
-  const getRequestStatus = (pet) => pet.status || 'Pending';
+  const fetchAdoptionRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await adoptionAPI.getRequests();
+      setAdoptionRequests(response.data.requests || response.data);
+    } catch (error) {
+      toast.error('Failed to fetch adoption requests');
+      console.error('Error fetching adoption requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-600 text-lg font-semibold">Loading adoption requests...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-6 py-12">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">Adoption Requests</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-blue-700">My Adoption Requests</h1>
+          <button
+            onClick={fetchAdoptionRequests}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
 
-        {/* Modal for pet details */}
-        {modalPet && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setModalPet(null)}>
-            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-[90vw] max-h-[90vh] flex flex-col items-center relative animate-fadeIn" onClick={e => e.stopPropagation()}>
+        {/* Modal for request details */}
+        {modalRequest && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setModalRequest(null)}>
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-[90vw] max-h-[90vh] overflow-y-auto relative animate-fadeIn" onClick={e => e.stopPropagation()}>
               <button
-                onClick={() => setModalPet(null)}
+                onClick={() => setModalRequest(null)}
                 className="absolute top-3 right-3 text-gray-400 hover:text-blue-600 text-2xl font-bold"
                 aria-label="Close"
               >
                 &times;
               </button>
-              <img src={modalPet.image} alt={modalPet.name} className="w-40 h-40 object-cover rounded-full border-4 border-blue-100 mb-4" />
-              <div className="text-2xl font-bold text-blue-800 mb-1">{modalPet.name}</div>
-              <div className="text-base text-gray-500 mb-2">{modalPet.breed} • {modalPet.type}</div>
-              <div className="text-sm text-gray-600 mb-1">Size: {modalPet.size}</div>
-              <div className="text-sm text-gray-600 mb-1">Age: {modalPet.age} {modalPet.age === 1 ? "year" : "years"}</div>
-              <div className="text-sm text-gray-600 mb-1">Gender: {modalPet.gender}</div>
-              <div className="text-gray-700 text-center mb-3">{modalPet.description}</div>
-              <div className="flex flex-wrap gap-2 mt-2 mb-4">
-                {modalPet.tags && modalPet.tags.map((tag, idx) => (
-                  <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{tag}</span>
-                ))}
+              
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Pet Info */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src={modalRequest.pet?.images?.[0] ? 
+                      (modalRequest.pet.images[0].startsWith('http') ? 
+                        modalRequest.pet.images[0] : 
+                        `http://localhost:5001${modalRequest.pet.images[0]}`) : 
+                      '/api/placeholder/300/300'} 
+                    alt={modalRequest.pet?.name} 
+                    className="w-64 h-64 object-cover rounded-lg border-4 border-blue-100" 
+                  />
+                </div>
+                
+                {/* Request Details */}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-blue-800 mb-2">{modalRequest.pet?.name}</h2>
+                  <p className="text-gray-600 mb-4">{modalRequest.pet?.breed} • {modalRequest.pet?.species}</p>
+                  
+                  <div className="mb-4">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(modalRequest.status)}`}>
+                      {modalRequest.status?.charAt(0).toUpperCase() + modalRequest.status?.slice(1)}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">Submitted: {formatDate(modalRequest.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">Adoption Fee: ${modalRequest.pet?.adoptionFee || 0}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Application Data */}
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold text-gray-800 mb-3">Application Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Living Space:</span> {modalRequest.applicationData?.livingSpace}</p>
+                      <p><span className="font-medium">Experience:</span> {modalRequest.applicationData?.experience}</p>
+                      <p><span className="font-medium">Work Schedule:</span> {modalRequest.applicationData?.workSchedule}</p>
+                      <p><span className="font-medium">Reason:</span> {modalRequest.applicationData?.reason}</p>
+                    </div>
+                  </div>
+                  
+                  {modalRequest.adminNotes && (
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="font-semibold text-gray-800 mb-2">Admin Notes</h3>
+                      <p className="text-sm text-gray-600">{modalRequest.adminNotes}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="mt-2 text-base font-semibold">
-                Status: <span className="inline-block px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">{getRequestStatus(modalPet)}</span>
-              </div>
-              <button className="mt-6 px-8 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition" onClick={() => setModalPet(null)}>Close</button>
+              
+              <button 
+                className="mt-6 px-8 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition w-full md:w-auto" 
+                onClick={() => setModalRequest(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
 
-        {adoptedPets.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {adoptedPets.map((pet) => (
+        {adoptionRequests.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {adoptionRequests.map((request) => (
               <div
-                key={pet.id}
-                className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:translate-y-1 flex flex-col"
+                key={request._id}
+                className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:translate-y-1 flex flex-col cursor-pointer"
+                onClick={() => setModalRequest(request)}
               >
-                <div className="relative w-full h-48 cursor-pointer" onClick={() => setModalPet(pet)}>
+                <div className="relative w-full h-48">
                   <img
-                    src={pet.image}
-                    alt={pet.name}
+                    src={request.pet?.images?.[0] ? 
+                      (request.pet.images[0].startsWith('http') ? 
+                        request.pet.images[0] : 
+                        `http://localhost:5001${request.pet.images[0]}`) : 
+                      '/api/placeholder/300/200'}
+                    alt={request.pet?.name}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
 
                 <div className="p-5 flex-grow flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">{pet.name}</h3>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">{request.pet?.name}</h3>
                   <p className="text-sm text-gray-600 mb-2">
-                    {pet.breed} • {pet.type}
+                    {request.pet?.breed} • {request.pet?.species}
                   </p>
-                  <p className="text-gray-700 mb-4 line-clamp-3">{pet.description}</p>
-                  <div className="flex flex-wrap gap-2 mt-auto mb-2">
-                    {pet.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                  
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-xs text-gray-500">Submitted {formatDate(request.createdAt)}</span>
                   </div>
-                  <div className="mt-2 text-sm font-semibold">
-                    Status: <span className="inline-block px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">{getRequestStatus(pet)}</span>
+                  
+                  <div className="mt-auto">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
+                      {request.status?.charAt(0).toUpperCase() + request.status?.slice(1)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -84,11 +195,15 @@ const Request = ({ adoptedPets }) => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-xl text-gray-600">No adoption requests yet.</p>
+            <div className="mb-4">
+              <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-xl text-gray-600 mb-2">No adoption requests yet.</p>
+              <p className="text-gray-500">When you apply for pet adoption, your requests will appear here.</p>
+            </div>
           </div>
         )}
       </div>
-      <style jsx>{`
+      <style>{`
         .animate-fadeIn {
           animation: fadeInModal 0.2s;
         }

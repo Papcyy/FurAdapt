@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -48,6 +48,7 @@ export const authAPI = {
 // Pets API
 export const petsAPI = {
   getAllPets: (params = {}) => api.get('/pets', { params }),
+  getPet: (id) => api.get(`/pets/${id}`),
   getPetById: (id) => api.get(`/pets/${id}`),
   createPet: (petData) => {
     const formData = new FormData();
@@ -99,6 +100,7 @@ export const petsAPI = {
 
 // Adoption API
 export const adoptionAPI = {
+  createRequest: (requestData) => api.post('/adoptions', requestData),
   submitRequest: (requestData) => api.post('/adoptions', requestData),
   getRequests: (params = {}) => api.get('/adoptions', { params }),
   getRequestById: (id) => api.get(`/adoptions/${id}`),

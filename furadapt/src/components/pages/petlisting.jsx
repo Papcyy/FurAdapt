@@ -248,7 +248,7 @@ const PetCard = ({ pet, onClick }) => {
   const imageUrl = pet.images && pet.images.length > 0 
     ? (pet.images[0].startsWith('http') 
        ? pet.images[0] 
-       : `http://localhost:5000${pet.images[0]}`)
+       : `http://localhost:5001${pet.images[0]}`)
     : '/api/placeholder/300/200';
 
   return (

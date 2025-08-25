@@ -38,7 +38,7 @@ const PetDetail = () => {
         petId: pet._id,
         applicationData
       });
-      toast.success('Adoption request submitted successfully!');
+      toast.success('Adoption request submitted successfully! You can view your request status in the Adoption Request section.');
       setShowAdoptionModal(false);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit adoption request');
@@ -83,7 +83,7 @@ const PetDetail = () => {
   const imageUrl = pet.images && pet.images.length > 0 
     ? (pet.images[0].startsWith('http') 
        ? pet.images[0] 
-       : `http://localhost:5000${pet.images[0]}`)
+       : `http://localhost:5001${pet.images[0]}`)
     : '/api/placeholder/600/400';
 
   return (

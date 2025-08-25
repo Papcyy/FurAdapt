@@ -17,7 +17,7 @@ const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
     case "Pet Listing":
       return <PetListing onAdopt={onAdoptPet} adoptedPets={adoptedPets} />;
     case "Adoption Request":
-      return <Request adoptedPets={adoptedPets} />;
+      return <Request />;
     case "Chat":
       // Navigate to the dedicated chat page
       navigate('/chat');
