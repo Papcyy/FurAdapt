@@ -36,18 +36,32 @@ const limiter = rateLimit({
 });
 
 // Middleware
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(limiter);
+
+// CORS configuration
 app.use(cors({
-  origin: true, // Allow all origins for now
+  origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
+
+// Handle preflight requests for all routes
+app.options('*', cors({
+  origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
