@@ -67,20 +67,12 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
   const navConfig = [
     { label: "Dashboard", icon: <Home size={20} /> },
     { label: "Pet Listing", icon: <PawPrint size={20} /> },
+    { label: "My Pets", icon: <Settings size={20} /> },
     { label: "Adoption Request", icon: <ClipboardList size={20} /> },
     { label: "Chat", icon: <MessageCircle size={20} />, badge: unreadCount },
     { label: "Profile", icon: <User size={20} /> },
     { label: "About Us", icon: <Info size={20} /> },
   ];
-
-  // Add admin dashboard for admin users
-  if (user?.role === 'admin') {
-    navConfig.splice(1, 0, { 
-      label: "Admin Dashboard", 
-      icon: <Settings size={20} />,
-      onClick: () => navigate('/admin')
-    });
-  }
 
   const handleLogout = async () => {
     try {

@@ -193,6 +193,145 @@ router.put('/:id', protect, admin, [
   }
 });
 
+// @desc    Get adoption requests for user's pets (pet owner)
+// @route   GET /api/adoptions/my-pets-requests
+// @access  Private
+router.get('/my-pets-requests/all', protect, async (req, res) => {
+  try {
+    // Get all pets posted by this user
+    const userPets = await Pet.find({ addedBy: req.user._id }).select('_id');
+    const petIds = userPets.map(pet => pet._id);
+
+    // Get adoption requests for these pets
+    const requests = await AdoptionRequest.find({ pet: { $in: petIds } })
+      .populate([
+        { path: 'pet', select: 'name species breed images location adoptionFee' },
+        { path: 'adopter', select: 'name email phone profileImage address' },
+        { path: 'reviewedBy', select: 'name email' }
+      ])
+      .sort({ createdAt: -1 });
+
+    res.json({
+      requests,
+      totalRequests: requests.length
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Update adoption request status by pet owner
+// @route   PUT /api/adoptions/:id/owner-action
+// @access  Private
+router.put('/:id/owner-action', protect, [
+  body('action').isIn(['approve', 'reject']).withMessage('Invalid action')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { action, notes } = req.body;
+    const request = await AdoptionRequest.findById(req.params.id).populate('pet');
+
+    if (!request) {
+      return res.status(404).json({ message: 'Adoption request not found' });
+    }
+
+    // Check if user is the pet owner
+    if (request.pet.addedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized. You must be the pet owner.' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: 'Can only act on pending requests' });
+    }
+
+    const newStatus = action === 'approve' ? 'approved' : 'rejected';
+    request.status = newStatus;
+    request.adminNotes = notes || request.adminNotes;
+    request.reviewedBy = req.user._id;
+    request.reviewedAt = new Date();
+
+    await request.save();
+
+    // Update pet status
+    if (newStatus === 'approved') {
+      await Pet.findByIdAndUpdate(request.pet._id, {
+        status: 'pending',
+        adoptedBy: request.adopter
+      });
+
+      // Reject all other pending requests for this pet
+      await AdoptionRequest.updateMany(
+        {
+          pet: request.pet._id,
+          _id: { $ne: request._id },
+          status: 'pending'
+        },
+        {
+          status: 'rejected',
+          adminNotes: 'Another adopter was approved for this pet',
+          reviewedBy: req.user._id,
+          reviewedAt: new Date()
+        }
+      );
+    }
+
+    await request.populate([
+      { path: 'pet', select: 'name species breed images' },
+      { path: 'adopter', select: 'name email phone' },
+      { path: 'reviewedBy', select: 'name email' }
+    ]);
+
+    res.json(request);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Mark adoption as completed by pet owner
+// @route   PUT /api/adoptions/:id/complete
+// @access  Private
+router.put('/:id/complete', protect, async (req, res) => {
+  try {
+    const request = await AdoptionRequest.findById(req.params.id).populate('pet');
+
+    if (!request) {
+      return res.status(404).json({ message: 'Adoption request not found' });
+    }
+
+    // Check if user is the pet owner
+    if (request.pet.addedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized. You must be the pet owner.' });
+    }
+
+    if (request.status !== 'approved') {
+      return res.status(400).json({ message: 'Can only complete approved requests' });
+    }
+
+    request.status = 'completed';
+    await request.save();
+
+    // Update pet status to adopted
+    await Pet.findByIdAndUpdate(request.pet._id, {
+      status: 'adopted',
+      adoptedAt: new Date()
+    });
+
+    await request.populate([
+      { path: 'pet', select: 'name species breed images' },
+      { path: 'adopter', select: 'name email phone' },
+      { path: 'reviewedBy', select: 'name email' }
+    ]);
+
+    res.json(request);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // @desc    Delete adoption request
 // @route   DELETE /api/adoptions/:id
 // @access  Private

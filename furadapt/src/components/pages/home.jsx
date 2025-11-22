@@ -7,6 +7,7 @@ import PetListing from "./petlisting.jsx";
 import AboutUs from "./aboutus"; // Import the AboutUs component
 import Request from "./request"; // Import the Request component
 import Profile from "./profile"; // Import the Profile component
+import MyPets from "./MyPets"; // Import the MyPets component
 
 const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
       return <Dashboard petsCount={42} analytics={{ adoptionsThisMonth: 12, pendingRequests: 5, totalUsers: 120 }} />;
     case "Pet Listing":
       return <PetListing onAdopt={onAdoptPet} adoptedPets={adoptedPets} />;
+    case "My Pets":
+      return <MyPets />;
     case "Adoption Request":
       return <Request />;
     case "Chat":

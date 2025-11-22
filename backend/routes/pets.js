@@ -63,12 +63,30 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @desc    Get user's own pets
+// @route   GET /api/pets/my-pets
+// @access  Private
+router.get('/my-pets/all', protect, async (req, res) => {
+  try {
+    const pets = await Pet.find({ addedBy: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate('addedBy', 'name email');
+
+    res.json({
+      pets,
+      totalPets: pets.length
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // @desc    Get single pet
 // @route   GET /api/pets/:id
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const pet = await Pet.findById(req.params.id).populate('addedBy', 'name email phone');
+    const pet = await Pet.findById(req.params.id).populate('addedBy', 'name email phone profileImage');
 
     if (pet) {
       res.json(pet);
@@ -82,8 +100,8 @@ router.get('/:id', async (req, res) => {
 
 // @desc    Create new pet
 // @route   POST /api/pets
-// @access  Private (Admin only)
-router.post('/', protect, admin, upload.array('images', 5), [
+// @access  Private (All authenticated users can post pets)
+router.post('/', protect, upload.array('images', 5), [
   body('name').trim().notEmpty().withMessage('Pet name is required'),
   body('species').isIn(['dog', 'cat', 'bird', 'rabbit', 'hamster', 'fish', 'other']).withMessage('Invalid species'),
   body('breed').trim().notEmpty().withMessage('Breed is required'),
@@ -126,13 +144,18 @@ router.post('/', protect, admin, upload.array('images', 5), [
 
 // @desc    Update pet
 // @route   PUT /api/pets/:id
-// @access  Private (Admin only)
-router.put('/:id', protect, admin, upload.array('images', 5), async (req, res) => {
+// @access  Private (Owner or Admin only)
+router.put('/:id', protect, upload.array('images', 5), async (req, res) => {
   try {
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
       return res.status(404).json({ message: 'Pet not found' });
+    }
+
+    // Check if user is owner or admin
+    if (pet.addedBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to update this pet' });
     }
 
     // Update images if new ones are uploaded
@@ -164,13 +187,18 @@ router.put('/:id', protect, admin, upload.array('images', 5), async (req, res) =
 
 // @desc    Delete pet
 // @route   DELETE /api/pets/:id
-// @access  Private (Admin only)
-router.delete('/:id', protect, admin, async (req, res) => {
+// @access  Private (Owner or Admin only)
+router.delete('/:id', protect, async (req, res) => {
   try {
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
       return res.status(404).json({ message: 'Pet not found' });
+    }
+
+    // Check if user is owner or admin
+    if (pet.addedBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to delete this pet' });
     }
 
     await Pet.findByIdAndDelete(req.params.id);

@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { petsAPI, adoptionAPI } from "../../utils/api";
+import { Plus, Heart, Clock, CheckCircle } from "lucide-react";
 import img1 from '../../assets/1.jpg';
 import img2 from '../../assets/2.jpg';
 import img3 from '../../assets/3.jpg';
@@ -13,11 +16,44 @@ const petImages = [
   { src: img5, alt: 'Adoptable pet 5' },
 ];
 
-const Dashboard = ({ petsCount = 0, analytics = {} }) => {
-
+const Dashboard = () => {
+  const navigate = useNavigate();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [modalImg, setModalImg] = useState(null);
   const timeoutRef = useRef(null);
+  const [stats, setStats] = useState({
+    myPets: 0,
+    myRequests: 0,
+    petsRequests: 0,
+    totalAvailable: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [myPetsRes, myRequestsRes, petsRequestsRes, allPetsRes] = await Promise.all([
+        petsAPI.getMyPets(),
+        adoptionAPI.getRequests(),
+        adoptionAPI.getMyPetsRequests(),
+        petsAPI.getAllPets()
+      ]);
+
+      setStats({
+        myPets: myPetsRes.data.totalPets || 0,
+        myRequests: myRequestsRes.data.totalRequests || 0,
+        petsRequests: petsRequestsRes.data.totalRequests || 0,
+        totalAvailable: allPetsRes.data.totalPets || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
@@ -96,58 +132,81 @@ const Dashboard = ({ petsCount = 0, analytics = {} }) => {
           ))}
         </div>
       </div>
-      <div className="flex justify-center mb-8">
-        {/* Total Pets Available */}
-        <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center">
-          <div className="flex items-center justify-center bg-blue-100 rounded-full p-4 mb-4">
-            <svg width="40" height="40" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M12 21c-4.97 0-9-3.134-9-7 0-2.21 1.79-4 4-4 .34 0 .67.04.99.11C8.36 8.45 10.07 7 12 7s3.64 1.45 4.01 3.11c.32-.07.65-.11.99-.11 2.21 0 4 1.79 4 4 0 3.866-4.03 7-9 7z"
-                fill="#1976d2"
-              />
-              <circle cx="8.5" cy="10.5" r="1.5" fill="#1976d2" />
-              <circle cx="15.5" cy="10.5" r="1.5" fill="#1976d2" />
-            </svg>
-          </div>
-          <div className="text-3xl font-bold text-blue-700">{petsCount}</div>
-          <div className="text-gray-500">Total Pets Available</div>
+      {/* Quick Actions */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <button
+            onClick={() => navigate('/post-pet')}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 flex items-center gap-4"
+          >
+            <div className="bg-white/20 p-3 rounded-lg">
+              <Plus size={32} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-lg font-semibold">Post a Pet</h4>
+              <p className="text-sm text-blue-100">Help a pet find a home</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate('/my-pets')}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 flex items-center gap-4"
+          >
+            <div className="bg-white/20 p-3 rounded-lg">
+              <Heart size={32} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-lg font-semibold">Manage My Pets</h4>
+              <p className="text-sm text-purple-100">View and manage listings</p>
+            </div>
+          </button>
         </div>
       </div>
 
       {/* User Activity Summary Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mt-8">
-        <div className="text-lg font-semibold text-blue-700 mb-4">User Activity Summary</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Total Adoptions */}
-          <div className="flex items-center bg-blue-50 rounded-lg p-4">
-            <div className="flex items-center justify-center bg-blue-100 rounded-full p-4 mr-4">
-              <svg width="30" height="30" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M12 2a10 10 0 100 20 10 10 0 000-20zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"
-                  fill="#1976d2"
-                />
-              </svg>
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="text-xl font-semibold text-gray-800 mb-6">Your Activity Summary</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* My Posted Pets */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 text-center hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/my-pets')}>
+            <div className="flex items-center justify-center bg-blue-500 rounded-full w-12 h-12 mx-auto mb-3">
+              <Heart size={24} className="text-white" />
             </div>
-            <div>
-              <div className="text-xl font-bold text-blue-700">{analytics.totalAdoptions ?? 0}</div>
-              <div className="text-gray-500">Total Adoptions</div>
-            </div>
+            <div className="text-2xl font-bold text-blue-700">{stats.myPets}</div>
+            <div className="text-sm text-gray-600 mt-1">My Pets</div>
           </div>
 
-          {/* Total Requests */}
-          <div className="flex items-center bg-yellow-50 rounded-lg p-4">
-            <div className="flex items-center justify-center bg-yellow-100 rounded-full p-4 mr-4">
-              <svg width="30" height="30" fill="none" viewBox="0 0 24 24">
+          {/* My Adoption Requests */}
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 text-center hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-center justify-center bg-purple-500 rounded-full w-12 h-12 mx-auto mb-3">
+              <Clock size={24} className="text-white" />
+            </div>
+            <div className="text-2xl font-bold text-purple-700">{stats.myRequests}</div>
+            <div className="text-sm text-gray-600 mt-1">My Requests</div>
+          </div>
+
+          {/* Requests for My Pets */}
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-5 text-center hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/my-pets')}>
+            <div className="flex items-center justify-center bg-amber-500 rounded-full w-12 h-12 mx-auto mb-3">
+              <CheckCircle size={24} className="text-white" />
+            </div>
+            <div className="text-2xl font-bold text-amber-700">{stats.petsRequests}</div>
+            <div className="text-sm text-gray-600 mt-1">Pet Requests</div>
+          </div>
+
+          {/* Total Available */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 text-center hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-center bg-green-500 rounded-full w-12 h-12 mx-auto mb-3">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path
-                  d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-                  fill="#f59e0b"
+                  d="M12 21c-4.97 0-9-3.134-9-7 0-2.21 1.79-4 4-4 .34 0 .67.04.99.11C8.36 8.45 10.07 7 12 7s3.64 1.45 4.01 3.11c.32-.07.65-.11.99-.11 2.21 0 4 1.79 4 4 0 3.866-4.03 7-9 7z"
+                  fill="white"
                 />
               </svg>
             </div>
-            <div>
-              <div className="text-xl font-bold text-yellow-600">{analytics.totalRequests ?? 0}</div>
-              <div className="text-gray-500">Total Requests</div>
-            </div>
+            <div className="text-2xl font-bold text-green-700">{stats.totalAvailable}</div>
+            <div className="text-sm text-gray-600 mt-1">Total Available</div>
           </div>
         </div>
       </div>

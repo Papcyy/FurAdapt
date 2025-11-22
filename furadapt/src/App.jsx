@@ -9,8 +9,13 @@ import Home from './components/pages/home.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PetDetail from './components/pages/PetDetail.jsx';
-import AdminDashboard from './components/pages/AdminDashboard.jsx';
 import Chat from './components/pages/Chat.jsx';
+import PostPet from './components/pages/PostPet.jsx';
+import MyPets from './components/pages/MyPets.jsx';
+import Profile from './components/pages/profile.jsx';
+import Dashboard from './components/pages/dashboard.jsx';
+import PetListing from './components/pages/petlisting.jsx';
+import Request from './components/pages/request.jsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -32,9 +37,14 @@ function App() {
               <PetDetail />
             </ProtectedRoute>
           } />
-          <Route path="/admin" element={
-            <ProtectedRoute adminOnly={true}>
-              <AdminDashboard />
+          <Route path="/post-pet" element={
+            <ProtectedRoute>
+              <PostPet />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-pets" element={
+            <ProtectedRoute>
+              <MyPets />
             </ProtectedRoute>
           } />
           <Route path="/chat" element={
@@ -45,6 +55,26 @@ function App() {
           <Route path="/chat/:userId" element={
             <ProtectedRoute>
               <Chat />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/pets" element={
+            <ProtectedRoute>
+              <PetListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/requests" element={
+            <ProtectedRoute>
+              <Request />
             </ProtectedRoute>
           } />
         </Routes>

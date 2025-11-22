@@ -42,35 +42,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/profile'),
-  updateProfile: (userData) => {
-    // Check if we have file data that needs FormData
-    const hasFile = userData instanceof FormData || 
-                   Object.values(userData).some(value => value instanceof File);
-    
-    if (hasFile) {
-      let formData;
-      if (userData instanceof FormData) {
-        formData = userData;
-      } else {
-        formData = new FormData();
-        Object.keys(userData).forEach(key => {
-          if (userData[key] instanceof File) {
-            formData.append(key, userData[key]);
-          } else if (userData[key] !== null && userData[key] !== undefined) {
-            formData.append(key, userData[key]);
-          }
-        });
-      }
-      
-      return api.put('/auth/profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-    } else {
-      return api.put('/auth/profile', userData);
-    }
-  },
+  updateProfile: (userData) => api.put('/auth/profile', userData),
 };
 
 // Pets API
@@ -78,6 +50,7 @@ export const petsAPI = {
   getAllPets: (params = {}) => api.get('/pets', { params }),
   getPet: (id) => api.get(`/pets/${id}`),
   getPetById: (id) => api.get(`/pets/${id}`),
+  getMyPets: () => api.get('/pets/my-pets/all'),
   createPet: (petData) => {
     const formData = new FormData();
     
@@ -135,6 +108,9 @@ export const adoptionAPI = {
   updateRequestStatus: (id, statusData) => api.put(`/adoptions/${id}`, statusData),
   deleteRequest: (id) => api.delete(`/adoptions/${id}`),
   getUserRequests: () => api.get('/adoptions/user'),
+  getMyPetsRequests: () => api.get('/adoptions/my-pets-requests/all'),
+  ownerAction: (id, actionData) => api.put(`/adoptions/${id}/owner-action`, actionData),
+  completeAdoption: (id) => api.put(`/adoptions/${id}/complete`),
 };
 
 // Chat API
