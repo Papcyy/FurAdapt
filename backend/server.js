@@ -21,7 +21,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://192.168.100.5:5173", "http://192.168.100.5:5174", "http://192.168.100.9:5173", "http://192.168.100.9:5174"],
     methods: ["GET", "POST"]
   }
 });
@@ -40,7 +40,7 @@ const limiter = rateLimit({
 
 // Middleware - CORS must be first!
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://192.168.100.5:5173', 'http://192.168.100.5:5174', 'http://192.168.100.9:5173', 'http://192.168.100.9:5174'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
