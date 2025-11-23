@@ -64,10 +64,11 @@ const Sidenav = ({ currentPage, onNavigate, onHide }) => {
     }
   };
   
+  // Filter navigation items based on user role
   const navConfig = [
     { label: "Dashboard", icon: <Home size={20} /> },
     { label: "Pet Listing", icon: <PawPrint size={20} /> },
-    { label: "My Pets", icon: <Settings size={20} /> },
+    ...(user && user.role === 'admin' ? [{ label: "My Pets", icon: <Settings size={20} /> }] : []),
     { label: "Adoption Request", icon: <ClipboardList size={20} /> },
     { label: "Chat", icon: <MessageCircle size={20} />, badge: unreadCount },
     { label: "Profile", icon: <User size={20} /> },

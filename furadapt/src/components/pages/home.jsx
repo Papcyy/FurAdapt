@@ -11,6 +11,7 @@ import MyPets from "./MyPets"; // Import the MyPets component
 
 const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   switch (page) {
     case "Dashboard":
@@ -18,7 +19,14 @@ const SectionContent = ({ page, adoptedPets, onAdoptPet }) => {
     case "Pet Listing":
       return <PetListing onAdopt={onAdoptPet} adoptedPets={adoptedPets} />;
     case "My Pets":
-      return <MyPets />;
+      // Only allow admin users to access My Pets
+      if (user && user.role === 'admin') {
+        return <MyPets />;
+      } else {
+        // Redirect non-admin users back to dashboard
+        navigate('/home');
+        return null;
+      }
     case "Adoption Request":
       return <Request />;
     case "Chat":

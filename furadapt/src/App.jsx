@@ -38,12 +38,12 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/post-pet" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <PostPet />
             </ProtectedRoute>
           } />
           <Route path="/my-pets" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <MyPets />
             </ProtectedRoute>
           } />
